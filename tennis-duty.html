@@ -10,10 +10,10 @@
 <!-- Power Automate 연동 -->
 <script>
   // ⬇️ Power Automate HTTP 트리거 URL (완성 후 입력)
-  const PA_SAVE_BOOKING    = '';  // 예약 저장/수정 (POST)
-  const PA_LOAD_BOOKINGS   = '';  // 예약 목록 조회 (GET)
-  const PA_DELETE_BOOKING  = '';  // 예약 삭제 (POST)
-  const PA_UPLOAD_RECEIPT  = '';  // 증빙 파일 업로드 (POST)
+  const PA_SAVE_BOOKING    = 'https://defaultb9501effd05e4bf18a87898d83f46c.eb.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/047074b481de4fdfb437aec320f1165f/triggers/manual/paths/invoke?api-version=1';  // 예약 저장/수정 (POST)
+  const PA_LOAD_BOOKINGS   = 'https://defaultb9501effd05e4bf18a87898d83f46c.eb.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/ea12811979064ff2b6553e8293bf9b69/triggers/manual/paths/invoke?api-version=1';  // 예약 목록 조회 (GET)
+  const PA_DELETE_BOOKING  = 'https://defaultb9501effd05e4bf18a87898d83f46c.eb.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/03ea7d6970844cfd8765fc47b2ca09bb/triggers/manual/paths/invoke?api-version=1';  // 예약 삭제 (POST)
+  const PA_UPLOAD_RECEIPT  = 'https://defaultb9501effd05e4bf18a87898d83f46c.eb.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/25e7a02260044b959256619e566d17ab/triggers/manual/paths/invoke?api-version=1';  // 증빙 파일 업로드 (POST)
 
   // ── 예약 저장 ──
   window._saveBooking = async (id, data) => {
@@ -1018,21 +1018,28 @@
   let selectedDate = '';
 
   // ── 회원 목록 (임시 하드코딩 → 추후 Power Automate URL로 교체) ──
-  const POWER_AUTOMATE_URL = ''; // 👈 여기에 Power Automate HTTP 트리거 URL 입력
-  let MEMBER_LIST = ['병건','승호','준호','유선']; // 임시 목록
+  const PA_MEMBERS = 'https://defaultb9501effd05e4bf18a87898d83f46c.eb.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/4b842caac8e445419471e00eb887b290/triggers/manual/paths/invoke?api-version=1';
+  let MEMBER_LIST = []; // tennis_members 에서 로드
 
   async function loadMemberList() {
-    if (!POWER_AUTOMATE_URL) return;
+    if (!PA_MEMBERS) return;
     try {
-      const res = await fetch(POWER_AUTOMATE_URL);
+      const res = await fetch(PA_MEMBERS);
       const data = await res.json();
-      // Power Automate 응답 형식: { members: ["병건","승호",...] }
-      if (data.members && Array.isArray(data.members)) {
-        MEMBER_LIST = data.members;
-        console.log('회원 목록 로드됨:', MEMBER_LIST);
+      // SharePoint 응답: { value: [{ Title, IsMember, Bank, AccountNumber }, ...] }
+      const items = data.value || [];
+      MEMBER_LIST = items.filter(i => i.IsMember).map(i => i.Title);
+
+      // 계좌 정보도 같이 처리
+      const accounts = items
+        .filter(i => i.AccountNumber)
+        .map(i => ({ name: i.Title, bank: i.Bank || '', number: i.AccountNumber }));
+      if (accounts.length) {
+        document.getElementById('accountSection').style.display = 'block';
+        renderAccountList(accounts);
       }
     } catch(e) {
-      console.warn('Power Automate 연결 실패, 로컬 목록 사용');
+      console.warn('멤버 로드 실패:', e);
     }
   }
 
@@ -1360,24 +1367,7 @@
     return '';
   }
 
-  // ── SharePoint 계좌번호 연동 ──
-  // Power Automate HTTP 트리거 URL 입력
-  // 응답 형식: { accounts: [{ name:"홍길동", bank:"카카오뱅크", number:"3333-01-1234567" }, ...] }
-  const POWER_AUTOMATE_ACCOUNT_URL = ''; // 👈 여기에 URL 입력
 
-  async function loadAccountInfo() {
-    const section = document.getElementById('accountSection');
-    if (!POWER_AUTOMATE_ACCOUNT_URL) return; // URL 없으면 숨김 유지
-    section.style.display = 'block';
-    try {
-      const res = await fetch(POWER_AUTOMATE_ACCOUNT_URL);
-      const data = await res.json();
-      renderAccountList(data.accounts || []);
-    } catch(e) {
-      document.getElementById('accountLoading').textContent = '계좌 정보를 불러오지 못했어요';
-      console.warn('계좌 로드 실패:', e);
-    }
-  }
 
   function renderAccountList(accounts) {
     const loading = document.getElementById('accountLoading');
@@ -1616,7 +1606,6 @@
   // ── 초기 로드 ──
   async function init() {
     await loadMemberList();
-    await loadAccountInfo();
     const data = await window._loadBookings?.();
     if (data) {
       localBookings = data;
