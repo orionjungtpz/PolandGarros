@@ -6,6 +6,12 @@
 <title>테니스 듀티</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Nanum+Gothic:wght@400;700;800&display=swap" rel="stylesheet">
+<link rel="apple-touch-icon" href="https://orionjungtpz.github.io/PolandGarros/splash_6.jpg">
+<link rel="icon" type="image/jpeg" href="https://orionjungtpz.github.io/PolandGarros/splash_6.jpg">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Tennis Duty">
+<meta name="theme-color" content="#0d0d0d">
 
 <!-- Power Automate 연동 -->
 <script>
@@ -110,6 +116,11 @@
     font-family: 'Nanum Gothic', sans-serif;
     min-height: 100vh;
     overflow-x: hidden;
+  }
+
+  /* 스플래시 뒤 콘텐츠 숨김 */
+  body.splash-active > *:not(#splashScreen) {
+    visibility: hidden;
   }
 
   /* ── 헤더 ── */
@@ -717,6 +728,9 @@
 
   <script>
     (function() {
+      // 스플래시 중 뒤 콘텐츠 숨김
+      document.body.classList.add('splash-active');
+
       const all = [
         'https://orionjungtpz.github.io/PolandGarros/splash_2.jpg',
         'https://orionjungtpz.github.io/PolandGarros/splash_3.jpg',
@@ -763,7 +777,10 @@
       setTimeout(() => {
         const sp = document.getElementById('splashScreen');
         sp.style.opacity = '0';
-        setTimeout(() => sp.style.display = 'none', 750);
+        setTimeout(() => {
+          sp.style.display = 'none';
+          document.body.classList.remove('splash-active'); // 뒤 콘텐츠 표시
+        }, 750);
       }, 4000);
     })();
   </script>
@@ -927,7 +944,7 @@
     </div>
 
     <!-- 계좌번호 (SharePoint 연동) -->
-    <div class="form-group" id="accountSection" style="display:none;">
+    <div class="form-group" id="accountSection">
       <label class="form-label">입금 계좌번호</label>
       <div id="accountBox" style="
         background:var(--surface2);border:1px solid var(--border);
@@ -1035,7 +1052,6 @@
         .filter(i => i.AccountNumber)
         .map(i => ({ name: i.Title, bank: i.Bank || '', number: i.AccountNumber }));
       if (accounts.length) {
-        document.getElementById('accountSection').style.display = 'block';
         renderAccountList(accounts);
       }
     } catch(e) {
