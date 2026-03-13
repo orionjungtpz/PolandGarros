@@ -1461,8 +1461,8 @@
     const companyRaw = supported ? perPerson * 0.5 : perPerson;
     const companyFinal = Math.ceil(companyRaw / 100) * 100;
 
-    // 비회원: 코트비 1/n + 캔볼비 1/n (비회원끼리 나눔), 100원 올림
-    const ballPerGuest = guest > 0 ? BALL_FEE / guest : 0;
+    // 비회원: 코트비 1/n + 캔볼비 전체인원으로 나눔, 100원 올림
+    const ballPerGuest = guest > 0 ? BALL_FEE / total : 0;
     const guestFinal = Math.ceil((perPerson + ballPerGuest) / 100) * 100;
 
     // 회사 섹션
