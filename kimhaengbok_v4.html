@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>야구하는 김행복 ⚾</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 100%; height: 100%; }
+body {
+  background: #0d0d1a;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  min-height: 100dvh;
+  font-family: 'Segoe UI', sans-serif;
+  gap: 10px;
+  user-select: none;
+  overflow: hidden;
+}
+
+/* wrap은 고정 640×520, JS로 scale 처리 */
+#wrap-outer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+#wrap {
+  width: 640px; height: 520px;
+  position: relative;
+  overflow: hidden;
+  border-radius: 20px;
+  box-shadow: 0 12px 50px rgba(0,0,0,0.7);
+  transform-origin: top center;
+  flex-shrink: 0;
+}
+canvas#field { position: absolute; inset: 0; z-index: 1; }
+canvas#batter-canvas { position: absolute; inset: 0; z-index: 6; pointer-events: none; }
+
+#stands {
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 50px;
+  background: linear-gradient(180deg,#8b0000,#c0392b);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; letter-spacing: 4px; z-index: 10;
+  animation: crowdSway 2s ease-in-out infinite;
+}
+@keyframes crowdSway { 0%,100%{letter-spacing:4px} 50%{letter-spacing:6px} }
+
+#scoreboard {
+  position: absolute; top: 8px; left: 50%;
+  transform: translateX(-50%);
+  background: rgba(8,8,24,0.9); border: 1px solid #333;
+  border-radius: 12px; padding: 5px 18px;
+  z-index: 30; display: flex; align-items: center; gap: 14px;
+}
+.sb-block { text-align: center; }
+.sb-label { font-size: 9px; color: #777; letter-spacing: 1px; }
+.sb-val   { font-size: 18px; font-weight: 700; color: #ffe066; line-height: 1.1; }
+.sb-div   { width: 1px; height: 24px; background: #333; }
+
+#countdown {
+  position: absolute; top: 62px; left: 50%;
+  transform: translateX(-50%);
+  font-size: 12px; color: #ccc;
+  background: rgba(0,0,0,0.55); border-radius: 8px;
+  padding: 3px 14px; z-index: 30; white-space: nowrap;
+}
+
+#strike-zone-wrap {
+  position: absolute; top: 148px; left: 50%;
+  transform: translateX(-50%);
+  z-index: 8;
+}
+#strike-zone {
+  display: grid; grid-template-columns: repeat(3,1fr);
+  gap: 3px; padding: 3px;
+  background: rgba(255,255,255,0.1);
+  border: 2px solid rgba(255,255,255,0.5);
+  border-radius: 6px;
+}
+.zone-cell {
+  width: 68px; height: 68px;
+  border: 1.5px solid rgba(255,255,255,0.3);
+  border-radius: 4px;
+  background: rgba(255,255,255,0.04);
+  transition: background 0.12s, border-color 0.12s;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; color: rgba(255,255,255,0.25); font-weight: 700;
+}
+.zone-cell.active   { background: rgba(255,255,255,0.18); border-color: rgba(255,255,255,0.65); }
+.zone-cell.hit-hr   { background: rgba(255,220,50,0.55);  border-color: #ffe066; color: #664d00; }
+.zone-cell.hit-hit  { background: rgba(80,255,40,0.45);   border-color: #76ff03; color: #1b4500; }
+.zone-cell.hit-foul { background: rgba(255,160,40,0.45);  border-color: #ffb300; color: #4a2e00; }
+.zone-cell.hit-ball { background: rgba(80,140,255,0.35);  border-color: #82b1ff; color: #0d2a66; }
+.zone-cell.hit-out  { background: rgba(255,60,60,0.35);   border-color: #ff5252; color: #5a0000; }
+#zone-label {
+  text-align: center; font-size: 10px; color: rgba(255,255,255,0.4);
+  margin-top: 4px; letter-spacing: 1px;
+}
+
+#ball {
+  position: absolute; border-radius: 50%;
+  background: white; border: 2px solid #ddd;
+  z-index: 20; transform: translate(-50%,-50%);
+  pointer-events: none; display: none;
+}
+
+#verdict {
+  position: absolute; top: 90px; left: 50%;
+  transform: translateX(-50%) scale(0);
+  font-size: 54px; font-weight: 900;
+  white-space: nowrap; z-index: 50;
+  pointer-events: none; opacity: 0;
+  text-shadow: 3px 3px 0 #000, -2px -2px 0 #000;
+}
+#verdict.show { animation: verdPop 1.6s ease-out forwards; }
+@keyframes verdPop {
+  0%  { opacity:1; transform:translateX(-50%) scale(0) rotate(-8deg); }
+  28% { opacity:1; transform:translateX(-50%) scale(1.4) rotate(4deg); }
+  65% { opacity:1; transform:translateX(-50%) scale(1.05); }
+  85% { opacity:1; transform:translateX(-50%) scale(1); }
+  100%{ opacity:0; transform:translateX(-50%) scale(0.8); }
+}
+
+#bubble {
+  position: absolute; bottom: 80px; left: 50%;
+  transform: translateX(-50%);
+  background: white; border: 2.5px solid #ffd700;
+  border-radius: 14px; padding: 6px 16px;
+  font-size: 13px; font-weight: 700; color: #222;
+  white-space: nowrap; opacity: 0; z-index: 35;
+  pointer-events: none; transition: opacity 0.15s;
+}
+#bubble.show { opacity: 1; }
+
+.fx {
+  position: absolute; font-size: 28px; pointer-events: none;
+  animation: fxPop 0.8s ease-out forwards; z-index: 45;
+}
+@keyframes fxPop {
+  0%  { opacity:1; transform:scale(0.3); }
+  50% { opacity:1; transform:scale(1.6) rotate(20deg); }
+  100%{ opacity:0; transform:scale(1) translateY(-60px) rotate(40deg); }
+}
+
+/* 버튼 — wrap 바깥, scale 영향 안 받음 */
+#btn-area {
+  display: flex; gap: 14px; align-items: center;
+  width: 100%; justify-content: center;
+  padding: 0 16px;
+}
+#btn-swing {
+  flex: 1; max-width: 320px;
+  padding: 16px 0; background: #ffe066; color: #1a1a1a;
+  border: none; border-radius: 30px; font-size: 22px; font-weight: 700;
+  cursor: pointer; box-shadow: 0 6px 24px rgba(255,224,102,0.35);
+  transition: transform 0.1s, background 0.1s; letter-spacing: 1px;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+#btn-swing:active:not(:disabled){ transform: scale(0.95); background: #ffd600; }
+#btn-swing:disabled { background: #333; color: #555; box-shadow: none; cursor: default; transform: none; }
+</style>
+</head>
+<body>
+
+<div id="wrap-outer">
+<div id="wrap">
+  <!-- 배경 필드 -->
+  <canvas id="field" width="640" height="520"></canvas>
+
+  <div id="stands">👥👥👥👥👥👥👥👥👥👥👥👥</div>
+
+  <div id="scoreboard">
+    <div class="sb-block"><div class="sb-label">안타</div><div class="sb-val" id="sb-hit">0</div></div>
+    <div class="sb-div"></div>
+    <div class="sb-block"><div class="sb-label">홈런</div><div class="sb-val" id="sb-hr">0</div></div>
+    <div class="sb-div"></div>
+    <div class="sb-block"><div class="sb-label">삼진</div><div class="sb-val" id="sb-out">0</div></div>
+    <div class="sb-div"></div>
+    <div class="sb-block"><div class="sb-label">볼</div><div class="sb-val" id="sb-ball">0</div></div>
+    <div class="sb-div"></div>
+    <div class="sb-block"><div class="sb-label">타율</div><div class="sb-val" id="sb-avg">.000</div></div>
+  </div>
+
+  <div id="countdown">다음 투구까지 5초</div>
+
+  <!-- 스트라이크 존 -->
+  <div id="strike-zone-wrap">
+    <div id="strike-zone">
+      <div class="zone-cell" id="z0">↖</div><div class="zone-cell" id="z1">↑</div><div class="zone-cell" id="z2">↗</div>
+      <div class="zone-cell" id="z3">←</div><div class="zone-cell" id="z4">●</div><div class="zone-cell" id="z5">→</div>
+      <div class="zone-cell" id="z6">↙</div><div class="zone-cell" id="z7">↓</div><div class="zone-cell" id="z8">↘</div>
+    </div>
+    <div id="zone-label">스트라이크 존</div>
+  </div>
+
+  <!-- 공 -->
+  <div id="ball"></div>
+
+  <!-- 타자 Canvas (스윙 그리기) -->
+  <canvas id="batter-canvas" width="640" height="520"></canvas>
+
+  <div id="verdict"></div>
+  <div id="bubble">준비 완료!</div>
+</div>
+
+<div id="btn-area">
+  <button id="btn-swing" disabled onclick="swing()">🏏 스윙!</button>
+</div>
+</div>
+
+<script>
+/* ── 반응형 Scale ── */
+const wrapEl = document.getElementById('wrap');
+const outerEl = document.getElementById('wrap-outer');
+
+function applyScale() {
+  const GAME_W = 640, GAME_H = 520;
+  const BTN_H = 70; // 버튼 영역 예상 높이
+  const GAP = 10;
+  const availW = window.innerWidth - 16;
+  const availH = window.innerHeight - BTN_H - GAP * 2 - 16;
+  const scale = Math.min(availW / GAME_W, availH / GAME_H, 1);
+  wrapEl.style.transform = `scale(${scale})`;
+  wrapEl.style.marginBottom = `${(GAME_H * scale - GAME_H)}px`;
+  // wrap-outer 폭을 scale된 크기에 맞춤
+  outerEl.style.width = Math.min(GAME_W * scale, GAME_W) + 'px';
+}
+applyScale();
+window.addEventListener('resize', applyScale);
+
+const fieldCvs  = document.getElementById('field');
+const fc        = fieldCvs.getContext('2d');
+const batCvs    = document.getElementById('batter-canvas');
+const bc        = batCvs.getContext('2d');
+const W = 640, H = 520;
+
+/* ── UI 요소 ── */
+const ballEl   = document.getElementById('ball');
+const bubble   = document.getElementById('bubble');
+const verdict  = document.getElementById('verdict');
+const cdEl     = document.getElementById('countdown');
+const btnSwing = document.getElementById('btn-swing');
+const sbHit    = document.getElementById('sb-hit');
+const sbHR     = document.getElementById('sb-hr');
+const sbOut    = document.getElementById('sb-out');
+const sbBall   = document.getElementById('sb-ball');
+const sbAvg    = document.getElementById('sb-avg');
+const zones    = Array.from({length:9},(_,i)=>document.getElementById('z'+i));
+
+/* ── 상태 ── */
+let hits=0,hrs=0,outs=0,balls=0,atbats=0;
+let phase='idle';
+let ballAnimId, countdownTimer, swingAnimId;
+let ballX,ballY,ballSize;
+let targetZone=-1;
+let swingAngle=0, swingPhase='ready'; // ready | forward | follow
+let swingProgress=0;
+
+/* ════════════════════════
+   배경 필드 그리기 (1회)
+════════════════════════ */
+function drawField() {
+  const ctx = fc;
+  ctx.clearRect(0,0,W,H);
+
+  // 하늘
+  const sky = ctx.createLinearGradient(0,50,0,280);
+  sky.addColorStop(0,'#3a7bd5'); sky.addColorStop(1,'#6fb3e0');
+  ctx.fillStyle=sky; ctx.fillRect(0,50,W,230);
+
+  // 외야 잔디
+  const grass = ctx.createLinearGradient(0,280,0,340);
+  grass.addColorStop(0,'#3aaa28'); grass.addColorStop(1,'#2d8a1e');
+  ctx.fillStyle=grass; ctx.fillRect(0,280,W,60);
+
+  // 내야 흙 (사다리꼴 원근)
+  const dirt = ctx.createLinearGradient(0,340,0,H);
+  dirt.addColorStop(0,'#c4915a'); dirt.addColorStop(1,'#a8743f');
+  ctx.fillStyle=dirt;
+  ctx.beginPath();
+  ctx.moveTo(180,340); ctx.lineTo(460,340);
+  ctx.lineTo(W,H); ctx.lineTo(0,H);
+  ctx.closePath(); ctx.fill();
+
+  // 파울 라인 원근
+  ctx.strokeStyle='rgba(255,255,255,0.5)'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(320,520); ctx.lineTo(80,300); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(320,520); ctx.lineTo(560,300); ctx.stroke();
+
+  // 마운드
+  const mnd = ctx.createRadialGradient(320,310,2,320,310,30);
+  mnd.addColorStop(0,'#c4915a'); mnd.addColorStop(1,'#a8743f');
+  ctx.fillStyle=mnd;
+  ctx.beginPath(); ctx.ellipse(320,310,30,12,0,0,Math.PI*2); ctx.fill();
+
+  // 베이스들 (원근)
+  ctx.fillStyle='white';
+  // 2루
+  ctx.save(); ctx.translate(320,258); ctx.rotate(Math.PI/4);
+  ctx.fillRect(-8,-8,16,16); ctx.restore();
+  // 1루
+  ctx.save(); ctx.translate(390,288); ctx.rotate(Math.PI/4);
+  ctx.fillRect(-7,-7,14,14); ctx.restore();
+  // 3루
+  ctx.save(); ctx.translate(250,288); ctx.rotate(Math.PI/4);
+  ctx.fillRect(-7,-7,14,14); ctx.restore();
+  // 홈플레이트
+  ctx.fillStyle='rgba(255,255,255,0.6)';
+  ctx.beginPath();
+  ctx.moveTo(305,510); ctx.lineTo(335,510);
+  ctx.lineTo(338,498); ctx.lineTo(320,492); ctx.lineTo(302,498);
+  ctx.closePath(); ctx.fill();
+
+  // 내야 라인
+  ctx.strokeStyle='rgba(255,255,255,0.35)'; ctx.lineWidth=1;
+  ctx.strokeRect(230,258,180,80);
+
+  // 피처 (작게)
+  drawPitcher(ctx, 320, 295, false);
+}
+
+function drawPitcher(ctx, x, y, throwing) {
+  ctx.save(); ctx.translate(x,y);
+  // 몸
+  ctx.fillStyle='#1b5e20';
+  ctx.beginPath(); ctx.ellipse(0,0,9,13,0,0,Math.PI*2); ctx.fill();
+  // 머리
+  ctx.fillStyle='#ffe0b2';
+  ctx.beginPath(); ctx.arc(0,-16,7,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#1b5e20';
+  ctx.beginPath(); ctx.arc(0,-20,7,0,Math.PI,true); ctx.fill();
+  // 팔 (투구 모션)
+  ctx.strokeStyle='#ffe0b2'; ctx.lineWidth=3; ctx.lineCap='round';
+  if (throwing) {
+    ctx.beginPath(); ctx.moveTo(-8,-3); ctx.lineTo(-18,-15); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(8,-3); ctx.lineTo(20,5); ctx.stroke();
+  } else {
+    ctx.beginPath(); ctx.moveTo(-8,-3); ctx.lineTo(-16,6); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(8,-3); ctx.lineTo(16,6); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/* ════════════════════════
+   우타 김행복 그리기
+   swingAngle: 0=준비자세, 1=팔로스루 완료
+════════════════════════ */
+function drawBatter(ctx, t) {
+  ctx.clearRect(0,0,W,H);
+
+  // 좌타자: 왼쪽에서 오른쪽을 바라봄 (화면 왼쪽에 위치)
+  const BX = 120, BY = 480;
+  ctx.save();
+  ctx.translate(BX, BY);
+  ctx.scale(-1, 1); // 좌우 반전
+
+  // 스윙 각도 계산
+  const batAngle = lerp(-110, 40, Math.min(t/0.5, 1));
+  const bodyLean = t < 0.5 ? lerp(0, 15, t/0.5) : lerp(15, 20, (t-0.5)/0.5);
+
+  ctx.save();
+  ctx.rotate(bodyLean * Math.PI / 180);
+
+  // ── 다리 ──
+  // 왼다리 (앞)
+  ctx.save();
+  ctx.rotate(t < 0.4 ? lerp(-5,10,t/0.4)*Math.PI/180 : 10*Math.PI/180);
+  ctx.fillStyle='#0d47a1';
+  ctx.beginPath(); ctx.roundRect(-12,-105,20,60,8); ctx.fill();
+  // 왼발
+  ctx.fillStyle='#111';
+  ctx.beginPath(); ctx.ellipse(-4,-108,18,8,0.2,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+
+  // 오른다리 (뒤)
+  ctx.save();
+  ctx.rotate(t < 0.4 ? lerp(5,-8,t/0.4)*Math.PI/180 : -8*Math.PI/180);
+  ctx.fillStyle='#0d47a1';
+  ctx.beginPath(); ctx.roundRect(-4,-100,18,58,8); ctx.fill();
+  ctx.fillStyle='#111';
+  ctx.beginPath(); ctx.ellipse(6,-103,16,7,0.1,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+
+  // ── 몸통 ──
+  ctx.fillStyle='#1565c0';
+  ctx.beginPath(); ctx.roundRect(-26,-215,52,112,14); ctx.fill();
+  // 유니폼 이름 (김행복) - scale(-1,1) 상태이므로 텍스트도 반전 보정
+  ctx.save();
+  ctx.scale(-1,1);
+  ctx.fillStyle='white'; ctx.font='bold 11px Arial'; ctx.textAlign='center';
+  ctx.fillText('김행복', 0, -190);
+  ctx.font='bold 18px Arial';
+  ctx.fillText('88', 0, -158);
+  ctx.restore();
+  // 허리띠
+  ctx.fillStyle='#0d1b6e';
+  ctx.beginPath(); ctx.roundRect(-27,-148,54,9,3); ctx.fill();
+
+  // ── 왼팔 (앞팔) ──
+  ctx.save();
+  const leftArmAngle = lerp(-30, -80, Math.min(t/0.5,1)) * Math.PI/180;
+  ctx.rotate(leftArmAngle);
+  ctx.fillStyle='#ffe0b2';
+  ctx.beginPath(); ctx.roundRect(-8,-185,16,55,8); ctx.fill();
+  // 왼손 장갑
+  ctx.fillStyle='#c62828';
+  ctx.beginPath(); ctx.ellipse(0,-130,10,9,0,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+
+  // ── 오른팔 (뒷팔, 배트 쥔 팔) ──
+  ctx.save();
+  const rightArmAngle = lerp(30, 60, Math.min(t/0.5,1)) * Math.PI/180;
+  ctx.rotate(rightArmAngle);
+  ctx.fillStyle='#ffe0b2';
+  ctx.beginPath(); ctx.roundRect(-8,-190,16,55,8); ctx.fill();
+  ctx.fillStyle='#c62828';
+  ctx.beginPath(); ctx.ellipse(0,-135,10,9,0,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+
+  // ── 배트 (우타: 왼쪽에서 오른쪽으로 스윙) ──
+  ctx.save();
+  const bRad = batAngle * Math.PI / 180;
+  ctx.rotate(bRad);
+  // 손잡이
+  const batGrad = ctx.createLinearGradient(-5,-300,5,-300);
+  batGrad.addColorStop(0,'#a1887f'); batGrad.addColorStop(0.3,'#d7ccc8');
+  batGrad.addColorStop(0.7,'#bcaaa4'); batGrad.addColorStop(1,'#795548');
+  ctx.fillStyle=batGrad;
+  ctx.beginPath(); ctx.roundRect(-5,-140,10,30,4); ctx.fill(); // 그립 끝
+  ctx.beginPath(); ctx.roundRect(-5.5,-290,11,155,5); ctx.fill(); // 손잡이 본체
+  // 배럴 (방망이 굵은 부분)
+  const barrelGrad = ctx.createLinearGradient(-16,-360,16,-360);
+  barrelGrad.addColorStop(0,'#a1887f'); barrelGrad.addColorStop(0.3,'#efebe9');
+  barrelGrad.addColorStop(0.7,'#d7ccc8'); barrelGrad.addColorStop(1,'#795548');
+  ctx.fillStyle=barrelGrad;
+  ctx.beginPath();
+  ctx.moveTo(-5.5,-290);
+  ctx.bezierCurveTo(-6,-320,-16,-335,-16,-350);
+  ctx.bezierCurveTo(-16,-368,-10,-376,0,-378);
+  ctx.bezierCurveTo(10,-376,16,-368,16,-350);
+  ctx.bezierCurveTo(16,-335,-6,-320,-5.5,-290);
+  ctx.closePath(); ctx.fill();
+  // 배트 라인 (나뭇결)
+  ctx.strokeStyle='rgba(120,80,50,0.3)'; ctx.lineWidth=0.8;
+  for(let i=0;i<3;i++){
+    ctx.beginPath();
+    ctx.moveTo(-3+i*2.5,-145); ctx.lineTo(-3+i*2.5,-290);
+    ctx.stroke();
+  }
+  // 배트 끝 캡
+  ctx.fillStyle='#5d4037';
+  ctx.beginPath(); ctx.ellipse(0,-378,16,7,0,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+
+  // ── 어깨 ──
+  ctx.fillStyle='#1976d2';
+  ctx.beginPath(); ctx.ellipse(-20,-215,14,10,0.3,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(20,-215,14,10,-0.3,0,Math.PI*2); ctx.fill();
+
+  // ── 목 ──
+  ctx.fillStyle='#ffe0b2';
+  ctx.beginPath(); ctx.roundRect(-8,-265,16,28,6); ctx.fill();
+
+  // ── 얼굴 ──
+  ctx.fillStyle='#ffe0b2';
+  ctx.beginPath(); ctx.arc(-5,-295,28,0,Math.PI*2); ctx.fill();
+
+  // 눈 (공을 보는 방향 - 왼쪽)
+  ctx.fillStyle='#3e2723';
+  ctx.beginPath(); ctx.ellipse(-16,-295,4,4.5,0,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(-4,-295,4,4.5,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='white';
+  ctx.beginPath(); ctx.arc(-15,-297,1.5,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(-3,-297,1.5,0,Math.PI*2); ctx.fill();
+
+  // 집중선 눈썹
+  ctx.strokeStyle='#3e2723'; ctx.lineWidth=2.5; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(-22,-303); ctx.lineTo(-12,-300); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-9,-301); ctx.lineTo(0,-299); ctx.stroke();
+
+  // 입 (집중)
+  ctx.beginPath(); ctx.moveTo(-20,-284); ctx.lineTo(-2,-284); ctx.stroke();
+
+  // 볼터치
+  ctx.fillStyle='rgba(255,160,160,0.4)';
+  ctx.beginPath(); ctx.ellipse(-18,-290,6,3.5,0,0,Math.PI*2); ctx.fill();
+
+  // ── 헬멧 ──
+  ctx.fillStyle='#c62828';
+  ctx.beginPath(); ctx.arc(-5,-302,30,Math.PI,0); ctx.fill();
+  ctx.beginPath(); ctx.roundRect(-35,-303,60,14,2); ctx.fill();
+  // 챙 (오른쪽 - 반전 후 실제로는 투수 방향)
+  ctx.beginPath();
+  ctx.moveTo(25,-300); ctx.lineTo(48,-295); ctx.lineTo(45,-286); ctx.lineTo(25,-289);
+  ctx.closePath(); ctx.fill();
+  // 헬멧 귀마개
+  ctx.beginPath(); ctx.arc(23,-298,10,0,Math.PI*2); ctx.fill();
+  // 헬멧 하이라이트
+  ctx.fillStyle='rgba(255,255,255,0.12)';
+  ctx.beginPath(); ctx.ellipse(0,-318,18,8,-0.3,0,Math.PI*2); ctx.fill();
+
+  ctx.restore(); // bodyLean
+  ctx.restore(); // translate
+}
+
+function lerp(a,b,t){ return a+(b-a)*Math.min(Math.max(t,0),1); }
+
+/* ════════════════════════
+   스윙 애니메이션
+════════════════════════ */
+let swingT = 0;
+let swingDir = 0; // 0: idle, 1: swinging
+const SWING_SPEED = 0.05;
+
+function animateSwing() {
+  if (swingDir === 1) {
+    swingT += SWING_SPEED;
+    if (swingT >= 1) { swingT = 1; swingDir = 0; }
+  } else if (swingDir === -1) {
+    swingT -= SWING_SPEED * 0.3; // 천천히 복귀
+    if (swingT <= 0) { swingT = 0; swingDir = 0; }
+  }
+  drawBatter(bc, swingT);
+  swingAnimId = requestAnimationFrame(animateSwing);
+}
+
+/* ════════════════════════
+   공 / 게임 로직
+════════════════════════ */
+function getZoneCenter(idx) {
+  const zwEl = document.getElementById('strike-zone-wrap');
+  const wRect = document.getElementById('wrap').getBoundingClientRect();
+  const zwRect = zwEl.getBoundingClientRect();
+  const col = idx%3, row = Math.floor(idx/3);
+  const cellSize=68, gap=3, pad=3;
+  return {
+    x: zwRect.left - wRect.left + pad + col*(cellSize+gap) + cellSize/2 + gap,
+    y: zwRect.top  - wRect.top  + pad + row*(cellSize+gap) + cellSize/2 + gap
+  };
+}
+
+function showBubble(txt, dur=1400) {
+  bubble.textContent=txt; bubble.classList.add('show');
+  clearTimeout(bubble._t);
+  bubble._t=setTimeout(()=>bubble.classList.remove('show'),dur);
+}
+function showVerdict(txt, color) {
+  verdict.textContent=txt; verdict.style.color=color;
+  verdict.classList.remove('show'); void verdict.offsetWidth;
+  verdict.classList.add('show');
+}
+function addFx(emoji,x,y,count=1) {
+  for(let i=0;i<count;i++) setTimeout(()=>{
+    const f=document.createElement('div'); f.className='fx';
+    f.textContent=emoji;
+    f.style.left=(x+(Math.random()-.5)*100)+'px';
+    f.style.top=(y+(Math.random()-.5)*60)+'px';
+    document.getElementById('wrap').appendChild(f);
+    setTimeout(()=>f.remove(),900);
+  },i*100);
+}
+function updateStats() {
+  sbHit.textContent=hits; sbHR.textContent=hrs;
+  sbOut.textContent=outs; sbBall.textContent=balls;
+  const avg=atbats===0?'.000':'.'+String(Math.round(((hits+hrs)/atbats)*1000)).padStart(3,'0');
+  sbAvg.textContent=avg;
+}
+function clearZones() { zones.forEach(z=>{ z.className='zone-cell'; }); }
+
+/* 구종 정의 */
+const PITCH_TYPES = {
+  straight: { name:'직구 🔴', frames:72,  color:'#ff5252', curve:(t)=>({dx:0,      dy:0}) },
+  slider:   { name:'슬라이더 🟡', frames:85, color:'#ffe066', curve:(t)=>({dx: Math.sin(t*Math.PI)*55, dy: Math.sin(t*Math.PI*0.6)*-18}) },
+  curve:    { name:'커브 🔵', frames:100, color:'#82b1ff', curve:(t)=>({dx: Math.sin(t*Math.PI)*-30, dy: Math.sin(t*Math.PI)*-60}) },
+};
+let currentPitchType = null;
+
+function doPitch() {
+  if(phase==='pitching') return;
+  phase='pitching';
+  btnSwing.disabled=false;
+  clearZones();
+  swingT=0; swingDir=0;
+
+  // 구종 랜덤 선택
+  const types = Object.keys(PITCH_TYPES);
+  const typeName = types[Math.floor(Math.random()*types.length)];
+  currentPitchType = PITCH_TYPES[typeName];
+
+  // 구종은 결과 후에만 표시
+
+  const isBall = Math.random()<0.22;
+  targetZone = isBall ? 9 : Math.floor(Math.random()*9);
+
+  setTimeout(()=>drawField(), 0);
+
+  let destX, destY;
+  if(targetZone<=8){
+    const c=getZoneCenter(targetZone); destX=c.x; destY=c.y;
+  } else {
+    const offsets=[[-145,0],[145,0],[0,-105],[0,125],[-130,-90],[130,-90]];
+    const off=offsets[Math.floor(Math.random()*offsets.length)];
+    const mid=getZoneCenter(4); destX=mid.x+off[0]; destY=mid.y+off[1];
+  }
+
+  ballX=320; ballY=300; ballSize=4;
+  ballEl.style.display='block';
+  ballEl.style.background='white';
+  ballEl.style.width=ballEl.style.height=ballSize+'px';
+  ballEl.style.left=ballX+'px'; ballEl.style.top=ballY+'px';
+
+  const totalFrames = currentPitchType.frames;
+  const curveFn = currentPitchType.curve;
+  let frame=0;
+
+  function moveBall(){
+    if(phase!=='pitching') return;
+    frame++;
+    const t = frame/totalFrames;
+    const ease = t*t; // 가속
+    const curve = curveFn(t);
+    ballX = 320 + (destX-320)*ease + curve.dx*(1-ease);
+    ballY = 300 + (destY-300)*ease + curve.dy*(1-ease);
+    ballSize = 4+28*ease;
+    ballEl.style.width=ballEl.style.height=ballSize+'px';
+    ballEl.style.left=(ballX-ballSize/2)+'px';
+    ballEl.style.top=(ballY-ballSize/2)+'px';
+    if(frame===Math.floor(totalFrames*0.6) && targetZone<=8) zones[targetZone].classList.add('active');
+    if(frame>=totalFrames){ if(phase==='pitching') resolveResult('miss'); return; }
+    ballAnimId=requestAnimationFrame(moveBall);
+  }
+  ballAnimId=requestAnimationFrame(moveBall);
+}
+
+function showPitchType(pt) {
+  let el = document.getElementById('pitch-type-el');
+  if(!el){
+    el = document.createElement('div');
+    el.id='pitch-type-el';
+    el.style.cssText='position:absolute;top:90px;left:50%;transform:translateX(-50%);' +
+      'font-size:15px;font-weight:700;padding:4px 18px;border-radius:20px;z-index:32;' +
+      'border:2px solid;white-space:nowrap;transition:opacity 0.3s;pointer-events:none;';
+    document.getElementById('wrap').appendChild(el);
+  }
+  el.textContent = pt.name;
+  el.style.color = pt.color;
+  el.style.borderColor = pt.color;
+  el.style.background = 'rgba(0,0,0,0.6)';
+  el.style.opacity='1';
+}
+
+function swing() {
+  if(phase!=='pitching') return;
+  cancelAnimationFrame(ballAnimId);
+  // 스윙 액션 시작
+  swingDir=1;
+  resolveResult('swing');
+}
+
+function resolveResult(type) {
+  phase='result';
+  btnSwing.disabled=true;
+  clearZones();
+  const fz=targetZone;
+
+  if(type==='miss'){
+    showPitchType(currentPitchType);
+    if(fz<=8){
+      atbats++;outs++;updateStats();
+      zones[fz].classList.add('hit-out');
+      showVerdict('⚾ 삼진!','#ffffff');
+      showBubble(`${currentPitchType.name} 삼진! 😤`);
+    } else {
+      balls++;updateStats();
+      ballEl.style.display='none';
+      showVerdict('🔵 볼!','#82b1ff');
+      showBubble(`${currentPitchType.name} 볼! 😌`);
+    }
+    setTimeout(afterResult,1900);
+    return;
+  }
+
+  // 스윙
+  showPitchType(currentPitchType);
+  if(fz<=8){
+    atbats++;
+    const isHR   = fz===4;
+    const isGood = [1,3,5,7].includes(fz);
+    let result;
+    if(isHR)        result='hr';
+    else if(isGood) result=Math.random()<0.65?'hit':'foul';
+    else            result=Math.random()<0.38?'hit':'foul';
+
+    if(result==='hr'){
+      hrs++;hits++;updateStats();
+      zones[fz].classList.add('hit-hr');
+      showVerdict('🎉 홈런!','#ffe066');
+      showBubble(`${currentPitchType.name} 홈런!! 🎉`);
+      addFx('🎉',ballX,ballY,3); addFx('⭐',ballX,ballY,3); addFx('💥',ballX,ballY,2);
+      launchBall('hr');
+      document.getElementById('stands').style.fontSize='26px';
+      setTimeout(()=>document.getElementById('stands').style.fontSize='18px',900);
+    } else if(result==='hit'){
+      hits++;updateStats();
+      zones[fz].classList.add('hit-hit');
+      showVerdict('💥 안타!','#76ff03');
+      showBubble(`${currentPitchType.name} 안타! 💪`);
+      addFx('💥',ballX,ballY,2);
+      launchBall('hit');
+    } else {
+      outs++;updateStats();
+      zones[fz].classList.add('hit-foul');
+      ballEl.style.display='none';
+      showVerdict('😅 범타...','#ffcc80');
+      showBubble(`${currentPitchType.name} 범타... 😓`);
+    }
+  } else {
+    atbats++;outs++;updateStats();
+    ballEl.style.display='none';
+    showVerdict('😵 헛스윙!','#ff5252');
+    showBubble(`${currentPitchType.name} 헛스윙! 😅`);
+  }
+  setTimeout(afterResult,2100);
+}
+
+function launchBall(type){
+  ballEl.style.display='block';
+  let lx=ballX,ly=ballY;
+  let lvx=type==='hr'?(Math.random()-.4)*5:-(3+Math.random()*4);
+  let lvy=type==='hr'?-(14+Math.random()*4):-(7+Math.random()*4);
+  let sz=ballSize;
+  function move(){
+    lx+=lvx; ly+=lvy; lvy+=0.35; sz=Math.max(2,sz-0.2);
+    ballEl.style.left=(lx-sz/2)+'px'; ballEl.style.top=(ly-sz/2)+'px';
+    ballEl.style.width=ballEl.style.height=sz+'px';
+    if(ly>H+40||ly<-60||lx<-60||lx>W+80){ballEl.style.display='none';return;}
+    requestAnimationFrame(move);
+  }
+  requestAnimationFrame(move);
+}
+
+function afterResult(){
+  phase='idle';
+  ballEl.style.display='none';
+  clearZones();
+  swingDir=-1;
+  // 구종 표시 페이드아웃
+  const ptEl = document.getElementById('pitch-type-el');
+  if(ptEl) ptEl.style.opacity='0';
+  startCountdown();
+}
+
+function startCountdown(){
+  clearInterval(countdownTimer);
+  let sec=5;
+  cdEl.textContent=`다음 투구까지 ${sec}초`;
+  countdownTimer=setInterval(()=>{
+    sec--;
+    if(sec<=0){ clearInterval(countdownTimer); cdEl.textContent='투구 중!'; doPitch(); }
+    else cdEl.textContent=`다음 투구까지 ${sec}초`;
+  },1000);
+}
+
+// 키보드
+document.addEventListener('keydown',e=>{
+  if((e.code==='Space'||e.code==='ArrowUp'||e.code==='KeyZ')&&phase==='pitching'){
+    e.preventDefault(); swing();
+  }
+});
+// 터치 - 버튼 외 화면 탭도 스윙
+document.getElementById('wrap').addEventListener('touchstart', e=>{
+  if(phase==='pitching'){ e.preventDefault(); swing(); }
+},{passive:false});
+
+// 시작
+drawField();
+drawBatter(bc, 0);
+animateSwing();
+startCountdown();
+</script>
+</body>
+</html>
