@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>회의실 사이니지</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#f4f3ee; --surface:#fff; --surface2:#eeede7; --border:#dddcd4;
+    --text:#1a1916; --sub:#6b6960; --posco:#003087;
+    --busy:#c0392b; --busy-bg:#fdf0ef; --busy-bd:#f3c4bf;
+    --free:#1a7a4a; --free-bg:#eef8f2; --free-bd:#b6dfc8;
+    --panel-w: 400px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{
+    width:1280px;height:800px;overflow:hidden;
+    font-family:'DM Sans','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+    background:var(--bg);color:var(--text);
+  }
+
+  /* ═══════════════════════════
+     기본 화면 (풀페이지)
+  ═══════════════════════════ */
+  .main{
+    width:1280px;height:800px;
+    background:var(--surface);
+    display:flex;flex-direction:column;
+    position:relative;overflow:hidden;
+  }
+
+  /* 상태 컬러 바 */
+  .top-bar{height:9px;background:var(--busy);flex-shrink:0;}
+
+  /* 헤더 */
+  .header{
+    padding:28px 56px 22px;
+    display:flex;justify-content:space-between;align-items:flex-start;
+    border-bottom:1px solid var(--border);flex-shrink:0;
+  }
+  .brand-name{font-size:12px;font-weight:700;color:var(--posco);letter-spacing:2.5px;text-transform:uppercase;}
+  .brand-bldg{font-size:12px;color:var(--sub);margin-top:3px;}
+  .clock-time{font-family:'DM Mono',monospace;font-size:42px;font-weight:500;line-height:1;letter-spacing:-1.5px;text-align:right;}
+  .clock-date{font-size:12px;color:var(--sub);margin-top:6px;text-align:right;}
+
+  /* 콘텐츠 */
+  .content{
+    flex:1;padding:40px 56px 0;
+    display:flex;flex-direction:column;
+    transition:transform 0.44s cubic-bezier(0.32,0.72,0,1),
+               opacity  0.36s ease;
+  }
+  .content.dimmed{
+    transform:translateX(-24px);
+    opacity:0.3;
+    pointer-events:none;
+  }
+
+  .room-name{font-size:80px;font-weight:700;letter-spacing:-3px;line-height:1;margin-bottom:16px;}
+  .room-tags{display:flex;gap:8px;margin-bottom:32px;}
+  .tag{font-size:13px;color:var(--sub);background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 14px;font-weight:500;}
+
+  .status-card{
+    border-radius:18px;padding:30px 36px;
+    background:var(--busy-bg);border:1.5px solid var(--busy-bd);
+    position:relative;overflow:hidden;margin-bottom:40px;
+  }
+  .status-card::after{content:'';position:absolute;right:-60px;top:-60px;width:200px;height:200px;border-radius:50%;background:rgba(192,57,43,0.07);}
+  .s-eyebrow{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
+  .s-dot{width:9px;height:9px;border-radius:50%;background:var(--busy);animation:blink 1.6s ease-in-out infinite;}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:0.2}}
+  .s-label{font-size:11px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:var(--busy);}
+  .s-title{font-size:34px;font-weight:700;letter-spacing:-1px;line-height:1.15;margin-bottom:16px;position:relative;z-index:1;}
+  .s-meta{display:flex;gap:22px;flex-wrap:wrap;}
+  .s-chip{display:flex;align-items:center;gap:7px;font-size:15px;color:var(--sub);}
+
+  /* 타임라인 */
+  .tl-section{flex-shrink:0;}
+  .tl-label{
+    font-size:12px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;
+    color:var(--sub);margin-bottom:12px;
+    display:flex;align-items:center;gap:10px;
+  }
+  .tl-hint{
+    font-size:11px;font-weight:400;letter-spacing:0;text-transform:none;
+    color:var(--border);display:flex;align-items:center;gap:4px;
+    transition:color 0.3s;
+  }
+  .tl-section:hover .tl-hint{color:var(--sub);}
+
+  .tl-track-wrap{
+    cursor:pointer;
+    border-radius:10px;
+    padding:10px 0 14px;
+    transition:background 0.2s;
+    position:relative;
+  }
+  .tl-track-wrap:hover{background:rgba(0,0,0,0.025);}
+  .tl-track-wrap:hover .tl-hint{color:var(--sub);}
+
+  .tl-track{
+    position:relative;height:8px;
+    background:var(--surface2);border-radius:4px;
+    overflow:visible;margin-bottom:10px;
+  }
+  .tl-seg{position:absolute;top:0;bottom:0;border-radius:4px;}
+  .tl-pin{position:absolute;top:-6px;width:3px;height:20px;background:var(--text);border-radius:2px;transform:translateX(-50%);z-index:2;}
+  .tl-hours{display:flex;justify-content:space-between;font-family:'DM Mono',monospace;font-size:11px;color:var(--sub);}
+
+  /* 풋터 */
+  .footer{
+    padding:16px 56px 20px;border-top:1px solid var(--border);
+    display:flex;justify-content:space-between;align-items:center;
+    flex-shrink:0;
+    transition:transform 0.44s cubic-bezier(0.32,0.72,0,1), opacity 0.36s ease;
+  }
+  .footer.dimmed{transform:translateX(-16px);opacity:0.2;pointer-events:none;}
+  .amenities{display:flex;gap:18px;}
+  .amenity{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--sub);}
+  .contact{font-size:11px;color:var(--sub);text-align:right;line-height:1.6;}
+
+  /* ═══════════════════════════
+     오른쪽에서 슬라이드 인 패널
+  ═══════════════════════════ */
+  .side-panel{
+    position:absolute;
+    top:0;bottom:0;
+    right:0;
+    width:var(--panel-w);
+    background:var(--surface);
+    border-left:1px solid var(--border);
+    box-shadow:-8px 0 40px rgba(0,0,0,0.10);
+    transform:translateX(100%);
+    transition:transform 0.46s cubic-bezier(0.32,0.72,0,1);
+    display:flex;flex-direction:column;
+    z-index:30;
+    overflow:hidden;
+  }
+  .side-panel.open{transform:translateX(0);}
+
+  /* 패널 내부: 두 슬라이드 */
+  .panel-slides{
+    display:flex;width:200%;flex:1;overflow:hidden;
+    transition:transform 0.42s cubic-bezier(0.32,0.72,0,1);
+  }
+  .panel-slides.show-detail{transform:translateX(-50%);}
+  .panel-slide{width:50%;flex-shrink:0;display:flex;flex-direction:column;overflow-y:auto;}
+
+  /* 패널 헤더 */
+  .panel-header{
+    padding:20px 24px 14px;
+    border-bottom:1px solid var(--border);
+    display:flex;justify-content:space-between;align-items:center;
+    flex-shrink:0;background:var(--surface);
+  }
+  .panel-title{font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--sub);}
+  .panel-date{font-size:12px;color:var(--sub);}
+  .panel-close{
+    width:28px;height:28px;border-radius:50%;
+    border:1px solid var(--border);background:var(--surface2);
+    color:var(--sub);font-size:13px;
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;transition:all 0.15s;flex-shrink:0;
+  }
+  .panel-close:hover{background:var(--border);color:var(--text);}
+
+  /* 일정 목록 */
+  .sched-list{
+    display:flex;flex-direction:column;gap:8px;
+    padding:16px 20px 20px;
+  }
+  .sched-item{
+    background:var(--surface2);border:1px solid var(--border);
+    border-radius:11px;padding:14px 16px;
+    display:flex;gap:12px;align-items:center;
+    cursor:pointer;user-select:none;
+    transition:border-color 0.15s,transform 0.15s;
+    position:relative;
+  }
+  .sched-item::after{content:'›';position:absolute;right:14px;font-size:17px;color:var(--border);transition:color 0.15s,transform 0.15s;}
+  .sched-item:hover{border-color:#aaa;transform:translateX(2px);}
+  .sched-item:hover::after{color:var(--sub);transform:translateX(2px);}
+  .sched-item.is-busy {background:var(--busy-bg);border-color:var(--busy-bd);}
+  .sched-item.is-next {background:#eef3fc;border-color:#c0d3f5;}
+  .sched-item.is-done {opacity:0.45;}
+  .sched-item.selected{border-color:var(--posco);box-shadow:0 0 0 1px var(--posco);}
+
+  .si-time{min-width:52px;flex-shrink:0;}
+  .si-start{font-family:'DM Mono',monospace;font-size:17px;font-weight:500;line-height:1;color:var(--text);}
+  .si-dur  {font-size:10px;color:var(--sub);margin-top:3px;}
+  .si-div  {width:1px;align-self:stretch;background:var(--border);flex-shrink:0;}
+  .si-info {flex:1;padding:0 8px 0 4px;}
+  .si-title{font-size:13px;font-weight:600;margin-bottom:2px;line-height:1.2;}
+  .si-org  {font-size:11px;color:var(--sub);}
+  .si-badge{font-size:10px;background:var(--surface);border-radius:20px;padding:3px 9px;color:var(--sub);white-space:nowrap;margin-right:18px;border:1px solid var(--border);}
+  .sched-item.is-busy .si-start{color:var(--busy);}
+  .sched-item.is-busy .si-badge{background:#fde4e1;color:var(--busy);border-color:var(--busy-bd);}
+  .sched-item.is-next .si-badge{background:#d6e6fc;color:var(--posco);border-color:#c0d3f5;}
+
+  /* 상세 슬라이드 */
+  .detail-wrap{padding:0 20px 20px;display:flex;flex-direction:column;gap:14px;}
+  .detail-back{
+    display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--sub);
+    cursor:pointer;padding:16px 0 4px;flex-shrink:0;transition:color 0.15s;
+  }
+  .detail-back:hover{color:var(--text);}
+  .detail-back svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2.5;stroke-linecap:round;}
+
+  .dp-badge{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:3px 10px;border-radius:20px;}
+  .dp-badge .dp-dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
+  .dp-badge.busy    {background:var(--busy-bg);color:var(--busy);border:1px solid var(--busy-bd);}
+  .dp-badge.upcoming{background:#eef3fc;color:var(--posco);border:1px solid #c0d3f5;}
+  .dp-badge.done    {background:var(--surface2);color:var(--sub);border:1px solid var(--border);}
+  .dp-title{font-size:20px;font-weight:700;letter-spacing:-0.5px;line-height:1.2;}
+
+  .dp-tl-track{position:relative;height:26px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+  .dp-tl-fill{position:absolute;top:0;bottom:0;border-radius:6px;display:flex;align-items:center;justify-content:center;}
+  .dp-tl-fill.c-busy    {background:var(--busy);}
+  .dp-tl-fill.c-upcoming{background:var(--posco);}
+  .dp-tl-fill.c-done    {background:#9ca3af;}
+  .dp-tl-fill span{font-family:'DM Mono',monospace;font-size:10px;color:#fff;font-weight:500;white-space:nowrap;}
+  .dp-tl-now{position:absolute;top:0;bottom:0;width:2px;background:rgba(0,0,0,0.3);}
+  .dp-tl-hours{display:flex;justify-content:space-between;font-family:'DM Mono',monospace;font-size:9px;color:var(--sub);margin-top:4px;}
+
+  .dp-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .dp-cell{background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:11px 13px;}
+  .dp-cell-lbl{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--sub);margin-bottom:4px;}
+  .dp-cell-val{font-size:14px;font-weight:600;color:var(--text);line-height:1.2;}
+  .dp-cell-sub{font-size:11px;color:var(--sub);margin-top:2px;}
+
+  .dp-sec-lbl{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--sub);}
+  .dp-attendees{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;}
+  .dp-att-chip{font-size:11px;padding:4px 10px;border-radius:20px;background:var(--surface2);border:1px solid var(--border);color:var(--sub);}
+
+  /* 딤 오버레이 */
+  .dim{
+    position:absolute;inset:0;
+    background:rgba(0,0,0,0);pointer-events:none;
+    transition:background 0.4s;z-index:20;
+  }
+  .dim.active{background:rgba(0,0,0,0.06);pointer-events:auto;}
+</style>
+</head>
+<body>
+<div class="main">
+  <div class="top-bar"></div>
+
+  <!-- 헤더 -->
+  <div class="header">
+    <div>
+      <div class="brand-name">POSCO International</div>
+      <div class="brand-bldg">Posco Tower Songdo</div>
+    </div>
+    <div>
+      <div class="clock-time" id="clockTime">--:--</div>
+      <div class="clock-date" id="clockDate">-</div>
+    </div>
+  </div>
+
+  <!-- 메인 콘텐츠 -->
+  <div class="content" id="mainContent">
+    <div class="room-name">대회의실 A</div>
+    <div class="room-tags"><div class="tag">15F</div><div class="tag">최대 20인</div></div>
+    <div class="status-card">
+      <div class="s-eyebrow"><div class="s-dot"></div><div class="s-label">사용 중</div></div>
+      <div class="s-title">2025 ESG 전략 보고</div>
+      <div class="s-meta">
+        <div class="s-chip">🕐 <span>14:00 – 16:00</span></div>
+        <div class="s-chip">👤 <span>철강영업팀</span></div>
+        <div class="s-chip">👥 <span>12명</span></div>
+      </div>
+    </div>
+
+    <!-- 타임라인 (클릭 가능) -->
+    <div class="tl-section">
+      <div class="tl-label">
+        오늘 일정 타임라인
+        <span class="tl-hint">◀ 탭하면 일정 열림</span>
+      </div>
+      <div class="tl-track-wrap" id="tlWrap" onclick="openPanel()">
+        <div class="tl-track">
+          <div class="tl-seg" style="left:11.1%;width:16.7%;background:#ddd"></div>
+          <div class="tl-seg" style="left:55.6%;width:22.2%;background:var(--busy)"></div>
+          <div class="tl-seg" style="left:77.8%;width:11.1%;background:#a8c4f0"></div>
+          <div class="tl-seg" style="left:88.9%;width:11.1%;background:#c8d9f5"></div>
+          <div class="tl-pin" id="nowPin" style="left:69%"></div>
+        </div>
+        <div class="tl-hours">
+          <span>09</span><span>11</span><span>13</span>
+          <span>15</span><span>17</span><span>18</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 풋터 -->
+  <div class="footer" id="mainFooter">
+    <div class="amenities">
+      <div class="amenity">📺 <span>대형 모니터</span></div>
+      <div class="amenity">🔊 <span>음향</span></div>
+      <div class="amenity">📡 <span>화상회의</span></div>
+      <div class="amenity">🖊️ <span>화이트보드</span></div>
+    </div>
+    <div class="contact">행정지원그룹 · 내선 2230</div>
+  </div>
+
+  <!-- 딤 -->
+  <div class="dim" id="dim" onclick="closePanel()"></div>
+
+  <!-- ── 오른쪽에서 슬라이드 인 패널 ── -->
+  <div class="side-panel" id="sidePanel">
+    <div class="panel-slides" id="panelSlides">
+
+      <!-- 슬라이드 A: 일정 목록 -->
+      <div class="panel-slide">
+        <div class="panel-header">
+          <div>
+            <div class="panel-title">오늘 일정</div>
+            <div class="panel-date" id="panelDate">-</div>
+          </div>
+          <div class="panel-close" onclick="closePanel()">✕</div>
+        </div>
+        <div class="sched-list">
+          <div class="sched-item is-done" onclick="openDetail(0)">
+            <div class="si-time"><div class="si-start">10:00</div><div class="si-dur">-11:30 · 90분</div></div>
+            <div class="si-div"></div>
+            <div class="si-info"><div class="si-title">1분기 실적 점검 회의</div><div class="si-org">경영기획팀</div></div>
+            <div class="si-badge">8명</div>
+          </div>
+          <div class="sched-item is-busy" onclick="openDetail(1)">
+            <div class="si-time"><div class="si-start">14:00</div><div class="si-dur">-16:00 · 120분</div></div>
+            <div class="si-div"></div>
+            <div class="si-info"><div class="si-title">2025 ESG 전략 보고</div><div class="si-org">철강영업팀</div></div>
+            <div class="si-badge">12명 · 진행중</div>
+          </div>
+          <div class="sched-item is-next" onclick="openDetail(2)">
+            <div class="si-time"><div class="si-start">16:00</div><div class="si-dur">-17:00 · 60분</div></div>
+            <div class="si-div"></div>
+            <div class="si-info"><div class="si-title">행정지원그룹 주간보고</div><div class="si-org">한승호 대리</div></div>
+            <div class="si-badge">8명</div>
+          </div>
+          <div class="sched-item" onclick="openDetail(3)">
+            <div class="si-time"><div class="si-start">17:00</div><div class="si-dur">-18:00 · 60분</div></div>
+            <div class="si-div"></div>
+            <div class="si-info"><div class="si-title">신사업 기획안 리뷰</div><div class="si-org">신사업전략팀</div></div>
+            <div class="si-badge">15명</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 슬라이드 B: 상세 -->
+      <div class="panel-slide">
+        <div class="panel-header">
+          <div class="detail-back" onclick="backToList()">
+            <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+            오늘 일정
+          </div>
+          <div class="panel-close" onclick="closePanel()">✕</div>
+        </div>
+        <div class="detail-wrap" id="detailWrap"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+const schedules=[
+  {status:'done',    title:'1분기 실적 점검 회의',  org:'경영기획팀',   host:'김민재 팀장',
+   start:'10:00',end:'11:30',sh:10,sm:0,eh:11,em:30,dur:'90분',count:8,
+   attendees:['김민재 팀장','이수연 차장','박준호 과장','최아름 대리','정은호 대리','오지훈 사원','한가은 사원','이도현 사원'],
+   note:'분기별 정기 실적 보고'},
+  {status:'busy',    title:'2025 ESG 전략 보고',     org:'철강영업팀',   host:'박윤직 사원',
+   start:'14:00',end:'16:00',sh:14,sm:0,eh:16,em:0, dur:'120분',count:12,
+   attendees:['박윤직 사원','이종현 과장','최수현 차장','김태영 대리','서지원 대리','유나영 사원','강도현 사원','임하은 사원','조민준 사원','홍길동 부장','이철수 상무','정대리'],
+   note:'ESG 연간 목표 및 실행 계획 보고'},
+  {status:'upcoming',title:'행정지원그룹 주간보고',  org:'행정지원그룹', host:'한승호 대리',
+   start:'16:00',end:'17:00',sh:16,sm:0,eh:17,em:0, dur:'60분', count:8,
+   attendees:['한승호 대리','박윤직 사원','김은정 사원','오세림 사원','전승리 사원','이기원 대리','박현창 과장','한석희 차장'],
+   note:'매주 월요일 정기 주간보고'},
+  {status:'upcoming',title:'신사업 기획안 리뷰',     org:'신사업전략팀', host:'이종현 팀장',
+   start:'17:00',end:'18:00',sh:17,sm:0,eh:18,em:0, dur:'60분', count:15,
+   attendees:['이종현 팀장','김민지 차장','박서준 과장','최유진 대리','윤혜원 대리','오태양 사원','강민서 사원','임지수 사원','조현우 사원','한나영 사원','정세훈 사원','류다은 사원','서민준 사원','배수지 사원','노현수 사원'],
+   note:'신사업 아이디어 1차 검토 및 투자 방향성 논의'},
+];
+
+const statusLbl={busy:'진행 중',upcoming:'예약 예정',done:'완료'};
+function pct(h,m){return Math.max(0,Math.min(100,((h*60+m)-540)/540*100));}
+
+function openPanel(){
+  document.getElementById('sidePanel').classList.add('open');
+  document.getElementById('dim').classList.add('active');
+  document.getElementById('mainContent').classList.add('dimmed');
+  document.getElementById('mainFooter').classList.add('dimmed');
+  // 목록 화면으로 초기화
+  document.getElementById('panelSlides').classList.remove('show-detail');
+  document.querySelectorAll('.sched-item').forEach(el=>el.classList.remove('selected'));
+}
+
+function closePanel(){
+  document.getElementById('sidePanel').classList.remove('open');
+  document.getElementById('dim').classList.remove('active');
+  document.getElementById('mainContent').classList.remove('dimmed');
+  document.getElementById('mainFooter').classList.remove('dimmed');
+  document.getElementById('panelSlides').classList.remove('show-detail');
+  document.querySelectorAll('.sched-item').forEach(el=>el.classList.remove('selected'));
+}
+
+function openDetail(idx){
+  const d=schedules[idx];
+  document.querySelectorAll('.sched-item').forEach((el,i)=>el.classList.toggle('selected',i===idx));
+
+  const L=pct(d.sh,d.sm), W=pct(d.eh,d.em)-L;
+  const now=new Date();
+  const nP=pct(now.getHours(),now.getMinutes());
+  const cc=d.status==='busy'?'c-busy':d.status==='done'?'c-done':'c-upcoming';
+  const chips=d.attendees.map(a=>`<div class="dp-att-chip">${a}</div>`).join('');
+
+  document.getElementById('detailWrap').innerHTML=`
+    <div>
+      <div class="dp-badge ${d.status}"><div class="dp-dot"></div>${statusLbl[d.status]}</div>
+      <div class="dp-title" style="margin-top:8px">${d.title}</div>
+    </div>
+    <div>
+      <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--sub);margin-bottom:7px">시간대 위치</div>
+      <div class="dp-tl-track">
+        <div class="dp-tl-fill ${cc}" style="left:${L}%;width:${W}%"><span>${d.start}–${d.end}</span></div>
+        <div class="dp-tl-now" style="left:${nP}%"></div>
+      </div>
+      <div class="dp-tl-hours"><span>09:00</span><span>11:00</span><span>13:00</span><span>15:00</span><span>17:00</span><span>18:00</span></div>
+    </div>
+    <div class="dp-grid">
+      <div class="dp-cell"><div class="dp-cell-lbl">시간</div><div class="dp-cell-val">${d.start}–${d.end}</div><div class="dp-cell-sub">${d.dur}</div></div>
+      <div class="dp-cell"><div class="dp-cell-lbl">예약자</div><div class="dp-cell-val">${d.host}</div><div class="dp-cell-sub">${d.org}</div></div>
+    </div>
+    <div>
+      <div class="dp-sec-lbl">참석자 · ${d.count}명</div>
+      <div class="dp-attendees">${chips}</div>
+    </div>
+  `;
+  document.getElementById('panelSlides').classList.add('show-detail');
+}
+
+function backToList(){
+  document.getElementById('panelSlides').classList.remove('show-detail');
+  document.querySelectorAll('.sched-item').forEach(el=>el.classList.remove('selected'));
+}
+
+function pad(n){return String(n).padStart(2,'0');}
+function updateClock(){
+  const now=new Date(),h=now.getHours(),m=now.getMinutes();
+  const days=['일','월','화','수','목','금','토'];
+  document.getElementById('clockTime').textContent=pad(h)+':'+pad(m);
+  document.getElementById('clockDate').textContent=now.getFullYear()+'년 '+(now.getMonth()+1)+'월 '+now.getDate()+'일 '+days[now.getDay()]+'요일';
+  document.getElementById('panelDate').textContent=(now.getMonth()+1)+'월 '+now.getDate()+'일';
+  document.getElementById('nowPin').style.left=Math.min(100,Math.max(0,(h*60+m-540)/540*100))+'%';
+}
+updateClock();
+setInterval(updateClock,10000);
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closePanel();});
+</script>
+</body>
+</html>
