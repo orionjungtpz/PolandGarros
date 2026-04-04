@@ -1040,7 +1040,7 @@
       const res = await fetch(PA_MEMBERS);
       const data = await res.json();
       const items = data.value || [];
-      const loaded = items.filter(i => i.receiptNum?.Value === '예').map(i => i.Title);
+      const loaded = items.map(i => i.Title).filter(Boolean);
       if (loaded.length) MEMBER_LIST = loaded;
 
       const accounts = items
