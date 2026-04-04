@@ -1255,18 +1255,17 @@
       const courtVal = opts.find(o => (existingBooking.court||'').includes(o.label))?.value || '';
       document.getElementById('inputCourtNum').value = courtVal;
 
+      // 게임비 복원 (멤버 복원 전에 먼저)
+      if (existingBooking.courtFee) {
+        document.getElementById('inputCourtFee').value = existingBooking.courtFee;
+      }
+
       // 멤버 복원
       members = (existingBooking.members || []).map(name => ({ name, isMember: isMemberCheck(name) }));
       renderMembers();
 
       // 메모
       document.getElementById('inputMemo').value = existingBooking.memo || '';
-
-      // 게임비 복원 (멤버 복원 후 계산)
-      if (existingBooking.courtFee) {
-        document.getElementById('inputCourtFee').value = existingBooking.courtFee;
-        calcFee();
-      }
 
       // 증빙 복원
       receiptFiles = {
