@@ -1669,8 +1669,10 @@
     }
 
     // 로컬 업데이트
-    if (isSettlementMode && currentBooking) {
+    if (currentBooking) {
+      // 기존 예약 수정 - 교체
       localBookings = localBookings.filter(b => b.id !== currentBooking.id);
+      if (!isSettlementMode) localBookings.push(data); // 정산완료면 목록에서 제거
     } else {
       localBookings.push(data);
     }
