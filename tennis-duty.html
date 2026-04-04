@@ -58,7 +58,7 @@
         courtFee:  item.CourtFee     || item.courtFee || 0,
         members:   item.Members      ? item.Members.split(',').map(m => m.trim()) : (item.members || []),
         memo:      item.Memo         || item.memo     || '',
-        settled:   item.Settled      ?? item.settled  ?? false,
+        settled:   item.Settled?.Value === 'True' || item.settled === true || false,
         receipts:  {
           submitted: item.PhotoSubmitted || false
         }
