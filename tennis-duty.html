@@ -1292,11 +1292,13 @@
     }
 
     document.getElementById('inputMemberName').value = '';
-    document.getElementById('inputCourtFee').value = '';
-    document.getElementById('inputPeople').value = '';
-    document.getElementById('inputMember').value = '';
-    document.getElementById('inputNonMember').value = '';
-    document.getElementById('feeResult').style.display = 'none';
+    if (!existingBooking) {
+      document.getElementById('inputCourtFee').value = '';
+      document.getElementById('inputPeople').value = '';
+      document.getElementById('inputMember').value = '';
+      document.getElementById('inputNonMember').value = '';
+      document.getElementById('feeResult').style.display = 'none';
+    }
     document.getElementById('modalOverlay').classList.add('open');
     document.body.style.overflow = 'hidden';
     history.pushState({ modal: true }, '');
