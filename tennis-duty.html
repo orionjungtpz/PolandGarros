@@ -28,7 +28,8 @@
       const payload = {
         ...data,
         id,
-        members: Array.isArray(data.members) ? data.members.join(',') : data.members
+        members: Array.isArray(data.members) ? data.members.join(',') : data.members,
+        photoSubmitted: data.photoSubmitted || false
       };
       console.log('저장 payload:', JSON.stringify(payload));
       const res = await fetch(PA_SAVE_BOOKING, {
@@ -62,7 +63,7 @@
         memo:      item.Memo         || item.memo     || '',
         settled:   item.Settled?.Value === 'True' || item.settled === true || false,
         receipts:  {
-          submitted: item.PhotoSubmitted || false
+          submitted: item.PhotoSubmitted?.Value === 'Yes' || item.photoSubmitted === true || false
         }
       }));
     } catch(e) { console.warn('예약 로드 실패:', e); return null; }
@@ -1703,7 +1704,11 @@
       await Promise.all(uploads.map(([slot, f]) => window._uploadReceipt?.(date, slot, f)));
 
       // submitted 플래그 업데이트
+      console.log('currentBooking:', currentBooking);
       if (currentBooking) {
+        const updatedBooking = { ...currentBooking, receipts: { submitted: true }, photoSubmitted: true };
+        console.log('증빙 저장 payload:', JSON.stringify(updatedBooking));
+        await window._saveBooking?.(currentBooking.id, updatedBooking);
         currentBooking.receipts = { submitted: true };
         const idx = localBookings.findIndex(b => b.id === currentBooking.id);
         if (idx !== -1) localBookings[idx].receipts = { submitted: true };
