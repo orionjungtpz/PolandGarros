@@ -1224,11 +1224,16 @@
 
     // 모달 타이틀 + 버튼
     const btn = document.getElementById('submitBtn');
-    document.getElementById('modalTitle').textContent = isSettlementMode ? '정산 진행중' : '코트 예약 등록';
     if (isSettlementMode) {
+      document.getElementById('modalTitle').textContent = '정산 진행중';
       btn.textContent = '정산 완료하기';
       btn.style.background = '#f59e0b';
+    } else if (existingBooking) {
+      document.getElementById('modalTitle').textContent = '예약 수정';
+      btn.textContent = '예약 수정하기';
+      btn.style.background = '#3b82f6';
     } else {
+      document.getElementById('modalTitle').textContent = '코트 예약 등록';
       btn.textContent = '예약 등록하기';
       btn.style.background = '';
     }
@@ -1680,7 +1685,7 @@
     const saved = await window._saveBooking?.(id, data);
 
     btn.disabled = false;
-    btn.textContent = isSettlementMode ? '정산 완료하기' : '예약 등록하기';
+    btn.textContent = isSettlementMode ? '정산 완료하기' : currentBooking ? '예약 수정하기' : '예약 등록하기';
     closeModal();
     render();
     showToast(settled ? '✅ 정산 완료! 증빙이 SharePoint에 저장됐어요' : saved ? '✅ 예약이 저장됐어요!' : '✅ 로컬에 저장됐어요');
