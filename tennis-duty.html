@@ -86,16 +86,18 @@
     if (!PA_UPLOAD_RECEIPT || !fileObj) return false;
     const slotLabel = { photo: '인증샷', court: '코트비', drink: '음료' }[slot] || slot;
     const fileName = `${bookingDate}_${slotLabel}.${fileObj.name.split('.').pop()}`;
+    console.log('업로드 시도:', fileName);
     try {
       const res = await fetch(PA_UPLOAD_RECEIPT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           fileName,
-          fileData: fileObj.dataUrl.split(',')[1],  // base64만 추출
+          fileData: fileObj.dataUrl.split(',')[1],
           mimeType: fileObj.type
         })
       });
+      console.log('업로드 응답:', res.status, res.statusText);
       return res.ok;
     } catch(e) { console.warn('파일 업로드 실패:', e); return false; }
   };
