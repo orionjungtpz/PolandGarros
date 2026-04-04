@@ -1294,7 +1294,15 @@
     document.getElementById('feeResult').style.display = 'none';
     document.getElementById('modalOverlay').classList.add('open');
     document.body.style.overflow = 'hidden';
+    history.pushState({ modal: true }, '');
   }
+
+  // 뒤로가기/스와이프로 모달 닫기
+  window.addEventListener('popstate', (e) => {
+    if (document.getElementById('modalOverlay').classList.contains('open')) {
+      closeModal();
+    }
+  });
 
   let receiptFiles = { photo: null, court: null, drink: null };
 
@@ -1643,12 +1651,6 @@
     btn.disabled = true;
     btn.textContent = '저장 중...';
 
-    // 정산 완료면 기존 항목 삭제 후 새로 저장
-    if (isSettlementMode && currentBooking) {
-      await window._deleteBooking?.(currentBooking.id);
-      localBookings = localBookings.filter(b => b.id !== currentBooking.id);
-    }
-
     // 증빙 파일 SharePoint 업로드 (있는 것만)
     if (isSettlementMode) {
       const uploads = [
@@ -1657,6 +1659,11 @@
         ['drink', receiptFiles.drink]
       ].filter(([, f]) => f);
       await Promise.all(uploads.map(([slot, f]) => window._uploadReceipt?.(date, slot, f)));
+    }
+
+    // 로컬 업데이트
+    if (isSettlementMode && currentBooking) {
+      localBookings = localBookings.filter(b => b.id !== currentBooking.id);
     }
 
     const saved = await window._saveBooking?.(id, data);
