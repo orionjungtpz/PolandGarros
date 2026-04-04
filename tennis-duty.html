@@ -847,6 +847,7 @@
     <div class="modal-title" id="modalTitle">코트 예약 등록</div>
     <div class="modal-date-display" id="modalDateDisplay"></div>
 
+    <div id="modalForm">
     <div class="form-group">
       <label class="form-label">날짜 / 시간</label>
       <div style="display:flex;gap:8px;align-items:center;">
@@ -1028,6 +1029,8 @@
         <div id="preview_drink" class="receipt-preview-wrap"></div>
       </div>
     </div>
+
+    </div> <!-- modalForm end -->
 
     <button class="submit-btn" id="submitBtn" style="margin-top:20px;">예약 등록하기</button>
 
@@ -1260,11 +1263,13 @@
       if (submitted) {
         // 증빙 제출 완료 → 관리자 정산 화면
         document.getElementById('modalTitle').textContent = '관리자 정산처리';
+        document.getElementById('modalForm').style.display = 'none';
         btn.style.display = 'none';
         adminSection.style.display = 'block';
       } else {
         // 증빙 미제출 → 증빙 제출 화면
         document.getElementById('modalTitle').textContent = '정산 진행중';
+        document.getElementById('modalForm').style.display = 'block';
         btn.textContent = '증빙 제출하기';
         btn.style.background = '#f59e0b';
         btn.style.display = '';
@@ -1272,6 +1277,7 @@
       }
     } else if (existingBooking) {
       document.getElementById('receiptSection').style.display = 'none';
+      document.getElementById('modalForm').style.display = 'block';
       document.getElementById('modalTitle').textContent = '예약 수정';
       btn.textContent = '예약 수정하기';
       btn.style.background = '#3b82f6';
@@ -1279,6 +1285,7 @@
       adminSection.style.display = 'none';
     } else {
       document.getElementById('receiptSection').style.display = 'none';
+      document.getElementById('modalForm').style.display = 'block';
       document.getElementById('modalTitle').textContent = '코트 예약 등록';
       btn.textContent = '예약 등록하기';
       btn.style.background = '';
