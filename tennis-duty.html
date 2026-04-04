@@ -1264,18 +1264,18 @@
       const courtVal = opts.find(o => (existingBooking.court||'').includes(o.label))?.value || '';
       document.getElementById('inputCourtNum').value = courtVal;
 
+      // 멤버 복원
+      members = (existingBooking.members || []).map(name => ({ name, isMember: isMemberCheck(name) }));
+      renderMembers();
+
       // 메모
       document.getElementById('inputMemo').value = existingBooking.memo || '';
 
-      // 게임비 복원
+      // 게임비 복원 (멤버 복원 후 계산)
       if (existingBooking.courtFee) {
         document.getElementById('inputCourtFee').value = existingBooking.courtFee;
         calcFee();
       }
-
-      // 멤버 복원
-      members = (existingBooking.members || []).map(name => ({ name, isMember: isMemberCheck(name) }));
-      renderMembers();
 
       // 증빙 복원
       receiptFiles = {
@@ -1650,8 +1650,8 @@
     const settled = isSettlementMode;
     const photoSubmitted = !!(receiptFiles.photo || receiptFiles.court || receiptFiles.drink);
 
-    // 정산 완료 시 기존 예약 덮어쓰기 (같은 id 유지)
-    const id = (isSettlementMode && currentBooking) ? currentBooking.id : `booking_${date}_${Date.now()}`;
+    // 기존 예약 수정 시 id 유지, 신규만 새 id 생성
+    const id = currentBooking ? currentBooking.id : `booking_${date}_${Date.now()}`;
     const data = {
       id, date, time, court, courtFee,
       members: members.map(m => m.name),
