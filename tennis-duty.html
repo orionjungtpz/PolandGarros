@@ -52,7 +52,9 @@
       const json = await res.json();
       // SharePoint 리스트 응답: { value: [...] } 형태
       const items = json.value || json;
-      return items.map(item => ({
+      return items
+        .filter(item => !(item.Settled?.Value === 'True'))
+        .map(item => ({
         id:        item.Title        || item.id,
         date:      item.BookingDate  ? item.BookingDate.split('T')[0] : item.date,
         time:      item.TimeSlot     || item.time     || '',
