@@ -1258,6 +1258,7 @@
       // 게임비 복원 (멤버 복원 전에 먼저)
       if (existingBooking.courtFee) {
         document.getElementById('inputCourtFee').value = existingBooking.courtFee;
+        console.log('게임비 복원:', existingBooking.courtFee, document.getElementById('inputCourtFee').value);
       }
 
       // 멤버 복원
