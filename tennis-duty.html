@@ -1040,12 +1040,12 @@
       const res = await fetch(PA_MEMBERS);
       const data = await res.json();
       const items = data.value || [];
-      const loaded = items.filter(i => i.IsMember).map(i => i.Title);
-      if (loaded.length) MEMBER_LIST = loaded; // 성공 시에만 덮어쓰기
+      const loaded = items.filter(i => i.receiptNum?.Value === '예').map(i => i.Title);
+      if (loaded.length) MEMBER_LIST = loaded;
 
       const accounts = items
-        .filter(i => i.AccountNumber)
-        .map(i => ({ name: i.Title, bank: i.Bank || '', number: i.AccountNumber }));
+        .filter(i => i.location)
+        .map(i => ({ name: i.Title, bank: i.submittedAt || '', number: i.location }));
       if (accounts.length) renderAccountList(accounts);
     } catch(e) {
       console.warn('멤버 로드 실패 — 하드코딩 목록 사용:', e);
