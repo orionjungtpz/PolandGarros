@@ -1666,10 +1666,11 @@
     // 로컬 업데이트
     if (isSettlementMode && currentBooking) {
       localBookings = localBookings.filter(b => b.id !== currentBooking.id);
+    } else {
+      localBookings.push(data);
     }
 
     const saved = await window._saveBooking?.(id, data);
-    localBookings.push(data);
 
     btn.disabled = false;
     btn.textContent = isSettlementMode ? '정산 완료하기' : '예약 등록하기';
