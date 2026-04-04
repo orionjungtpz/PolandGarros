@@ -63,7 +63,7 @@
         memo:      item.Memo         || item.memo     || '',
         settled:   item.Settled?.Value === 'True' || item.settled === true || false,
         receipts:  {
-          submitted: item.PhotoSubmitted?.Value === 'Yes' || item.photoSubmitted === true || false
+          submitted: item.PhotoSubmitted?.Value === 'True' || false
         }
       }));
     } catch(e) { console.warn('예약 로드 실패:', e); return null; }
