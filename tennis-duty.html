@@ -1034,15 +1034,8 @@
 
     <button class="submit-btn" id="submitBtn" style="margin-top:20px;">예약 등록하기</button>
 
-    </div>
-
     <!-- 관리자 정산완료 영역 -->
     <div id="adminSection" style="display:none;margin-top:10px;">
-      <div style="
-        background:var(--surface2);border:1px solid #4ade80;
-        border-radius:12px;padding:16px;margin-bottom:12px;
-        font-size:0.8rem;color:#4ade80;text-align:center;font-weight:800;
-      ">📎 증빙 제출 완료 — 관리자 정산 대기중</div>
       <div style="display:flex;gap:8px;align-items:center;">
         <input type="password" id="adminPw" placeholder="관리자 비밀번호" style="
           flex:1;background:var(--surface2);border:1px solid var(--border);
@@ -1057,6 +1050,7 @@
       </div>
       <div id="adminPwError" style="display:none;font-size:0.72rem;color:#f87171;margin-top:6px;padding-left:4px;">비밀번호가 틀렸어요</div>
     </div>
+
   </div>
 </div>
 
@@ -1262,12 +1256,15 @@
       document.getElementById('receiptSection').style.display = submitted ? 'none' : 'block';
       if (submitted) {
         // 증빙 제출 완료 → 관리자 정산 화면
-        document.getElementById('modalTitle').textContent = '관리자 정산처리';
+        document.getElementById('modalTitle').style.display = 'none';
+        document.getElementById('modalDateDisplay').style.display = 'none';
         document.getElementById('modalForm').style.display = 'none';
         btn.style.display = 'none';
         adminSection.style.display = 'block';
       } else {
         // 증빙 미제출 → 증빙 제출 화면
+        document.getElementById('modalTitle').style.display = '';
+        document.getElementById('modalDateDisplay').style.display = '';
         document.getElementById('modalTitle').textContent = '정산 진행중';
         document.getElementById('modalForm').style.display = 'block';
         btn.textContent = '증빙 제출하기';
@@ -1277,6 +1274,8 @@
       }
     } else if (existingBooking) {
       document.getElementById('receiptSection').style.display = 'none';
+      document.getElementById('modalTitle').style.display = '';
+      document.getElementById('modalDateDisplay').style.display = '';
       document.getElementById('modalForm').style.display = 'block';
       document.getElementById('modalTitle').textContent = '예약 수정';
       btn.textContent = '예약 수정하기';
@@ -1285,6 +1284,8 @@
       adminSection.style.display = 'none';
     } else {
       document.getElementById('receiptSection').style.display = 'none';
+      document.getElementById('modalTitle').style.display = '';
+      document.getElementById('modalDateDisplay').style.display = '';
       document.getElementById('modalForm').style.display = 'block';
       document.getElementById('modalTitle').textContent = '코트 예약 등록';
       btn.textContent = '예약 등록하기';
