@@ -1263,6 +1263,7 @@
       // 멤버 복원
       members = (existingBooking.members || []).map(name => ({ name, isMember: isMemberCheck(name) }));
       renderMembers();
+      calcFee();
 
       // 메모
       document.getElementById('inputMemo').value = existingBooking.memo || '';
