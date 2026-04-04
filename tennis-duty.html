@@ -970,7 +970,7 @@
     </div>
 
 
-    <div class="form-group">
+    <div class="form-group" id="receiptSection" style="display:none;">
       <label class="form-label">증빙 첨부</label>
 
       <!-- 1. 경기 인증샷 (필수) -->
@@ -1028,9 +1028,9 @@
       </div>
     </div>
 
-    </div>
+    <button class="submit-btn" id="submitBtn" style="margin-top:20px;">예약 등록하기</button>
 
-    <button class="submit-btn" id="submitBtn">예약 등록하기</button>
+    </div>
 
     <!-- 관리자 정산완료 영역 -->
     <div id="adminSection" style="display:none;margin-top:10px;">
@@ -1255,6 +1255,7 @@
 
     if (isSettlementMode) {
       const submitted = existingBooking?.receipts?.submitted;
+      document.getElementById('receiptSection').style.display = submitted ? 'none' : 'block';
       if (submitted) {
         // 증빙 제출 완료 → 관리자 정산 화면
         document.getElementById('modalTitle').textContent = '관리자 정산처리';
@@ -1269,12 +1270,14 @@
         adminSection.style.display = 'none';
       }
     } else if (existingBooking) {
+      document.getElementById('receiptSection').style.display = 'none';
       document.getElementById('modalTitle').textContent = '예약 수정';
       btn.textContent = '예약 수정하기';
       btn.style.background = '#3b82f6';
       btn.style.display = '';
       adminSection.style.display = 'none';
     } else {
+      document.getElementById('receiptSection').style.display = 'none';
       document.getElementById('modalTitle').textContent = '코트 예약 등록';
       btn.textContent = '예약 등록하기';
       btn.style.background = '';
