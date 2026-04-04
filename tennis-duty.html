@@ -69,6 +69,7 @@
   // ── 예약 삭제 ──
   window._deleteBooking = async (id) => {
     if (!PA_DELETE_BOOKING) return false;
+    console.log('삭제 요청 id:', id);
     try {
       const res = await fetch(PA_DELETE_BOOKING, {
         method: 'POST',
