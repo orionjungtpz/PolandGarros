@@ -1282,34 +1282,37 @@
     const ballPer   = gCount > 0 ? BALL_FEE / total : 0;
     const guestPay  = Math.ceil((perPerson + ballPer) / 100) * 100;
 
-    let msg = `🎾 ${dateLabel} ${b.court || ''}\n`;
-    if (b.time) msg += `⏰ ${b.time}\n`;
-    msg += `──────────────\n`;
+    const acct = cachedAccounts[0];
+    const acctLine = acct ? `💳 ${acct.bank} ${acct.number} (${acct.name})` : '';
 
+    let msg = `🎾 ${dateLabel} 정산요청드립니다.\n`;
+    if (b.court) msg += `📍 ${b.court}\n`;
+    if (b.time)  msg += `⏰ ${b.time}\n`;
+    msg += `──────────────\n`;
     if (mCount > 0) {
-      msg += `👥 회원(${mCount}) → ${memberPay.toLocaleString()}원\n`;
-      if (mCount <= 4) msg += memberNames.join(', ') + '\n';
+      msg += `👥 회원(${mCount}명) → ${memberPay.toLocaleString()}원\n`;
+      msg += `      ${memberNames.join(', ')}\n`;
     }
     if (gCount > 0) {
-      msg += `👤 비회원(${gCount}) → ${guestPay.toLocaleString()}원\n`;
-      if (gCount <= 3) msg += guestNames.join(', ') + '\n';
-    }
-    if (!supported && mCount > 0) {
-      msg += `⚠️회원2명미만(지원미적용)\n`;
+      msg += `👤 비회원(${gCount}명) → ${guestPay.toLocaleString()}원\n`;
+      msg += `      ${guestNames.join(', ')}\n`;
     }
     msg += `──────────────\n`;
-    msg += `코트비 ${fee.toLocaleString()}원 / ${total}명`;
+    msg += `코트비 ${fee.toLocaleString()}원\n`;
+    if (acctLine) msg += acctLine + '\n';
+    msg += `상기 계좌로 입금부탁드립니다.`;
 
     // 200자 초과 시 이름 생략 버전으로 재생성
     if (msg.length > 200) {
-      msg = `🎾 ${dateLabel} ${b.court || ''}\n`;
-      if (b.time) msg += `⏰ ${b.time}\n`;
+      msg = `🎾 ${dateLabel} 정산요청드립니다.\n`;
+      if (b.court) msg += `📍 ${b.court}\n`;
       msg += `──────────────\n`;
       if (mCount > 0) msg += `👥 회원(${mCount}명) → ${memberPay.toLocaleString()}원\n`;
       if (gCount > 0) msg += `👤 비회원(${gCount}명) → ${guestPay.toLocaleString()}원\n`;
-      if (!supported && mCount > 0) msg += `⚠️지원미적용\n`;
       msg += `──────────────\n`;
-      msg += `코트비 ${fee.toLocaleString()}원 / ${total}명`;
+      msg += `코트비 ${fee.toLocaleString()}원\n`;
+      if (acctLine) msg += acctLine + '\n';
+      msg += `상기 계좌로 입금부탁드립니다.`;
     }
     return msg.slice(0, 200);
   }
@@ -1590,7 +1593,11 @@
 
 
 
+  // 계좌 정보 전역 보관 (카톡 전송 시 활용)
+  let cachedAccounts = [];
+
   function renderAccountList(accounts) {
+    cachedAccounts = accounts; // 전역 저장
     const loading = document.getElementById('accountLoading');
     const list = document.getElementById('accountList');
     loading.style.display = 'none';
@@ -1928,11 +1935,81 @@
     await window._saveBooking?.(id, data);
     localBookings = localBookings.filter(b => b.id !== id);
 
+    // ── 카톡 정산 메시지 자동 전송 ──
+    await sendSettleKakao(data);
+
     settleBtn.disabled = false;
     settleBtn.textContent = '정산 완료';
     closeModal();
     render();
-    showToast('✅ 정산 완료! SharePoint에 저장됐어요');
+    showToast('✅ 정산완료! 카톡으로 내역을 보냈어요');
+  }
+
+  // ── 정산완료 시 카톡 메시지 생성 & 전송 ──
+  async function sendSettleKakao(data) {
+    const d = new Date(data.date + 'T00:00:00');
+    const dateLabel = `${d.getMonth()+1}/${d.getDate()}(${WEEKDAYS[d.getDay()]})`;
+    const memberNames = (data.members || []).filter(n => isMemberCheck(n));
+    const guestNames  = (data.members || []).filter(n => !isMemberCheck(n));
+    const total = data.members?.length || 0;
+    const fee   = data.courtFee || 0;
+    const BALL_FEE = 4000;
+    const mCount = memberNames.length;
+    const gCount = guestNames.length;
+    const supported = mCount >= 2;
+    const perPerson = total > 0 ? fee / total : 0;
+    const memberPay = Math.ceil((supported ? perPerson * 0.5 : perPerson) / 100) * 100;
+    const ballPer   = gCount > 0 ? BALL_FEE / total : 0;
+    const guestPay  = Math.ceil((perPerson + ballPer) / 100) * 100;
+
+    // 계좌번호 (cachedAccounts 첫 번째 항목 사용)
+    const acct = cachedAccounts[0];
+    const acctLine = acct ? `💳 ${acct.bank} ${acct.number} (${acct.name})` : '';
+
+    let msg = `🎾 ${dateLabel} 정산요청드립니다.\n`;
+    if (data.court) msg += `📍 ${data.court}\n`;
+    if (data.time)  msg += `⏰ ${data.time}\n`;
+    msg += `──────────────\n`;
+    if (mCount > 0) {
+      msg += `👥 회원(${mCount}명) → ${memberPay.toLocaleString()}원\n`;
+      msg += `      ${memberNames.join(', ')}\n`;
+    }
+    if (gCount > 0) {
+      msg += `👤 비회원(${gCount}명) → ${guestPay.toLocaleString()}원\n`;
+      msg += `      ${guestNames.join(', ')}\n`;
+    }
+    msg += `──────────────\n`;
+    msg += `코트비 ${fee.toLocaleString()}원\n`;
+    if (acctLine) msg += `${acctLine.replace('💳 ', '💳 ')}\n`;
+    msg += `상기 계좌로 입금부탁드립니다.`;
+
+    // 200자 초과 시 이름 생략
+    if (msg.length > 200) {
+      msg = `🎾 ${dateLabel} 정산요청드립니다.\n`;
+      if (data.court) msg += `📍 ${data.court}\n`;
+      msg += `──────────────\n`;
+      if (mCount > 0) msg += `👥 회원(${mCount}명) → ${memberPay.toLocaleString()}원\n`;
+      if (gCount > 0) msg += `👤 비회원(${gCount}명) → ${guestPay.toLocaleString()}원\n`;
+      msg += `──────────────\n`;
+      msg += `코트비 ${fee.toLocaleString()}원\n`;
+      if (acctLine) msg += `${acctLine}\n`;
+      msg += `상기 계좌로 입금부탁드립니다.`;
+    }
+    msg = msg.slice(0, 200);
+
+    // PlayMCP 카카오 전송
+    const PA_KAKAO = 'https://playmcp.kakao.com/mcp';
+    try {
+      const res = await fetch(PA_KAKAO, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tool: 'KakaotalkChat-MemoChat', params: { message: msg } })
+      });
+      if (!res.ok) throw new Error('kakao fail');
+    } catch {
+      // fallback: 클립보드 복사
+      try { await navigator.clipboard.writeText(msg); } catch {}
+    }
   }
 
   // ── 초기 로드 ──
