@@ -1286,8 +1286,8 @@
     const acctLine = acct ? `💳 ${acct.bank} ${acct.number}(${acct.name})` : '';
 
     let msg = `🎾 ${dateLabel} 정산요청드립니다.\n`;
-    if (b.court) msg += `📍 ${b.court}\n`;
-    if (b.time)  msg += `⏰ ${b.time.replace(' ', '').replace(' ', '')}\n`;
+    if (b.court) msg += `${b.court}\n`;
+    if (b.time)  msg += `${b.time.replace(' ', '').replace(' ', '')}\n`;
     msg += `──────────────\n`;
     if (mCount > 0) {
       msg += `👥 회원(${mCount}명) → ${memberPay.toLocaleString()}원\n`;
@@ -1305,7 +1305,7 @@
     // 200자 초과 시 이름 생략 버전으로 재생성
     if (msg.length > 200) {
       msg = `🎾 ${dateLabel} 정산요청드립니다.\n`;
-      if (b.court) msg += `📍 ${b.court}\n`;
+      if (b.court) msg += `${b.court}\n`;
       msg += `──────────────\n`;
       if (mCount > 0) msg += `👥 회원(${mCount}명) → ${memberPay.toLocaleString()}원\n`;
       if (gCount > 0) msg += `👤 비회원(${gCount}명) → ${guestPay.toLocaleString()}원\n`;
@@ -1967,8 +1967,8 @@
     const acctLine = acct ? `💳 ${acct.bank} ${acct.number} (${acct.name})` : '';
 
     let msg = `🎾 ${dateLabel} 정산요청드립니다.\n`;
-    if (data.court) msg += `📍 ${data.court}\n`;
-    if (data.time)  msg += `⏰ ${data.time.replace(' ', '').replace(' ', '')}\n`;
+    if (data.court) msg += `${data.court}\n`;
+    if (data.time)  msg += `${data.time.replace(' ', '').replace(' ', '')}\n`;
     msg += `──────────────\n`;
     if (mCount > 0) {
       msg += `👥 회원(${mCount}명) → ${memberPay.toLocaleString()}원\n`;
@@ -1987,7 +1987,7 @@
     // 200자 초과 시 이름 생략
     if (msg.length > 200) {
       msg = `🎾 ${dateLabel} 정산요청드립니다.\n`;
-      if (data.court) msg += `📍 ${data.court}\n`;
+      if (data.court) msg += `${data.court}\n`;
       msg += `──────────────\n`;
       if (mCount > 0) msg += `👥 회원(${mCount}명) → ${memberPay.toLocaleString()}원\n`;
       if (gCount > 0) msg += `👤 비회원(${gCount}명) → ${guestPay.toLocaleString()}원\n`;
