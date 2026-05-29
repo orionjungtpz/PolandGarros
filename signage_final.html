@@ -150,18 +150,18 @@
   /* 회의명 — 메인 타이틀 */
   .meeting-title{
     font-weight:800;
-    letter-spacing:-3px;line-height:1.0;
+    line-height:1.0;
     color:var(--col);
     margin-bottom:20px;
     transition:color 1s;
     width:100%;
-    white-space:nowrap;
-    overflow:hidden;
     text-align:center;
+    white-space:nowrap;
+    font-size:clamp(50px, 8.5vw, 138px);
+    letter-spacing:-3px;
   }
   .meeting-title.empty{
     font-weight:300;
-    letter-spacing:-1px;
     opacity:0.5;
   }
 
@@ -388,22 +388,16 @@
   // 실제 화면 기준 (스케일 0.726 역산): 가용폭 1120px
   function autoFitTitle(text) {
     const el = document.getElementById('meetingTitle');
-    el.textContent = text;
-    el.style.whiteSpace = 'nowrap';
-    el.style.display = 'block';
-
-    const maxWidth = 1100;
-    let fs = 220;
-    el.style.fontSize = fs + 'px';
-
-    // DOM 실제 너비 기준으로 줄여나감
-    requestAnimationFrame(() => {
-      while (el.scrollWidth > maxWidth && fs > 50) {
-        fs -= 2;
-        el.style.fontSize = fs + 'px';
-      }
-      el.style.letterSpacing = fs >= 120 ? '-4px' : fs >= 90 ? '-3px' : '-2px';
-    });
+    const len = text.length;
+    // 짧을수록 크게, 기준: 1280px 화면에서 한 줄로
+    if      (len <= 6)  el.style.fontSize = '138px';
+    else if (len <= 9)  el.style.fontSize = '130px';
+    else if (len <= 12) el.style.fontSize = '118px';
+    else if (len <= 15) el.style.fontSize = '100px';
+    else if (len <= 18) el.style.fontSize = '86px';
+    else if (len <= 22) el.style.fontSize = '72px';
+    else if (len <= 26) el.style.fontSize = '62px';
+    else                el.style.fontSize = '52px';
   }
 
 
@@ -416,9 +410,7 @@
   }
   updateClock();
   setInterval(updateClock, 10000);
-  // DOM 완전 렌더 후 실행
-  window.addEventListener('load', () => autoFitTitle('2025 ESG 전략 보고'));
-  setTimeout(() => autoFitTitle('2025 ESG 전략 보고'), 300);
+  autoFitTitle('2025 ESG 전략 보고');
 </script>
 </body>
 </html>
